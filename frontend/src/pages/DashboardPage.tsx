@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 type User = {
   id: number;
@@ -51,6 +52,9 @@ const DashboardPage = () => {
           <p><strong>Uloga:</strong> {user.role}</p>
 
           <br />
+          <Link to="/applications/new">Nova prijava prakse</Link>
+
+          <br /><br />
           <button onClick={handleLogout}>Logout</button>
         </div>
       ) : (
