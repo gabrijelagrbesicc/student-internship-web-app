@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 type LoginResponse = {
   token: string;
@@ -61,6 +61,9 @@ const LoginPage = () => {
       <br /><br />
 
       <button onClick={handleLogin}>Login</button>
+      <br /><br />
+        <Link to="/register">Nemaš račun? Registriraj se</Link>
+
     </div>
   );
 };
