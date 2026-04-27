@@ -5,6 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import NewApplicationPage from "./pages/NewApplicationPage";
 import MyApplicationsPage from "./pages/MyApplicationsPage";
 import AllApplicationsPage from "./pages/AllApplicationsPage";
+import ApplicationDetailsPage from "./pages/ApplicationDetailsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
@@ -46,6 +47,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AllApplicationsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/applications/:id"
+          element={
+            <ProtectedRoute>
+              <ApplicationDetailsPage />
             </ProtectedRoute>
           }
         />

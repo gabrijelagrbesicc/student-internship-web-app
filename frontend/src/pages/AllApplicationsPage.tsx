@@ -156,7 +156,9 @@ const AllApplicationsPage = () => {
                 {app.mentor_ime ? `${app.mentor_ime} ${app.mentor_prezime}` : "Nije dodijeljen"}
               </p>
 
-              <br />
+              <Link to={`/applications/${app.id}`}>Pogledaj detalje</Link>
+
+              <br /><br />
 
               <label>Promijeni status: </label>
               <select

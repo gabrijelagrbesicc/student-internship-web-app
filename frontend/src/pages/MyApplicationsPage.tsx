@@ -78,6 +78,8 @@ const MyApplicationsPage = () => {
               <p><strong>Datum početka:</strong> {app.datum_pocetka?.slice(0, 10)}</p>
               <p><strong>Datum završetka:</strong> {app.datum_zavrsetka?.slice(0, 10)}</p>
               <p><strong>Status:</strong> {app.status}</p>
+
+              <Link to={`/applications/${app.id}`}>Pogledaj detalje</Link>
             </div>
           ))}
         </div>
