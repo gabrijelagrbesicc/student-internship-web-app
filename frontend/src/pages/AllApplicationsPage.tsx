@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
-type Application = {
+type ApplicationDetails = {
   id: number;
   student_id: number;
   institucija_id: number;
@@ -12,33 +12,50 @@ type Application = {
   datum_pocetka: string;
   datum_zavrsetka: string;
   status: string;
+  ocjena: number | null;
+  zavrsno_izvjesce_tekst: string | null;
   created_at: string;
+
   student_ime?: string;
   student_prezime?: string;
+  student_email?: string;
+
   institucija_naziv?: string;
+  institucija_adresa?: string;
+  institucija_grad?: string;
+  institucija_kontakt_email?: string;
+  institucija_kontakt_osoba?: string;
+
   mentor_ime?: string;
   mentor_prezime?: string;
 };
 
-type Mentor = {
+type DocumentItem = {
   id: number;
-  ime: string;
-  prezime: string;
-  email: string;
-  role: string;
+  prijava_id: number;
+  naziv_dokumenta: string;
+  tip_dokumenta: string;
+  putanja: string;
+  upload_date: string;
 };
 
-const AllApplicationsPage = () => {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [mentors, setMentors] = useState<Mentor[]>([]);
+const ApplicationDetailsPage = () => {
+  const { id } = useParams();
+
+  const [application, setApplication] = useState<ApplicationDetails | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [nazivDokumenta, setNazivDokumenta] = useState("");
+  const [tipDokumenta, setTipDokumenta] = useState("sporazum");
+  const [file, setFile] = useState<File | null>(null);
 
   const token = localStorage.getItem("token");
 
-  const fetchAllApplications = async () => {
+  const fetchApplication = async () => {
     try {
-      const res = await axios.get<Application[]>(
-        "http://localhost:5000/api/applications",
+      const res = await axios.get<ApplicationDetails>(
+        `http://localhost:5000/api/applications/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -46,19 +63,19 @@ const AllApplicationsPage = () => {
         }
       );
 
-      setApplications(res.data);
+      setApplication(res.data);
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju svih prijava.");
+      alert("Greška pri dohvaćanju detalja prijave.");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMentors = async () => {
+  const fetchDocuments = async () => {
     try {
-      const res = await axios.get<Mentor[]>(
-        "http://localhost:5000/api/users/mentors",
+      const res = await axios.get<DocumentItem[]>(
+        `http://localhost:5000/api/documents/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -66,146 +83,193 @@ const AllApplicationsPage = () => {
         }
       );
 
-      setMentors(res.data);
+      setDocuments(res.data);
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju mentora.");
+      alert("Greška pri dohvaćanju dokumenata.");
     }
   };
 
-  const handleStatusChange = async (applicationId: number, newStatus: string) => {
-    try {
-      await axios.put(
-        `http://localhost:5000/api/applications/${applicationId}/status`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      alert("Status uspješno promijenjen.");
-      fetchAllApplications();
-    } catch (error) {
-      console.error(error);
-      alert("Greška pri promjeni statusa.");
+  const handleUpload = async () => {
+    if (!file || !nazivDokumenta || !tipDokumenta || !id) {
+      alert("Unesi naziv dokumenta, tip dokumenta i odaberi datoteku.");
+      return;
     }
-  };
 
-  const handleAssignMentor = async (applicationId: number, mentorId: number) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/applications/${applicationId}/assign-mentor`,
-        { mentor_id: mentorId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const formData = new FormData();
 
-      alert("Mentor uspješno dodijeljen.");
-      fetchAllApplications();
+      formData.append("prijava_id", id);
+      formData.append("naziv_dokumenta", nazivDokumenta);
+      formData.append("tip_dokumenta", tipDokumenta);
+      formData.append("dokument", file);
+
+      await axios.post("http://localhost:5000/api/documents/upload", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert("Dokument uspješno uploadan.");
+
+      setNazivDokumenta("");
+      setTipDokumenta("sporazum");
+      setFile(null);
+
+      fetchDocuments();
     } catch (error) {
       console.error(error);
-      alert("Greška pri dodjeli mentora.");
+      alert("Greška pri uploadu dokumenta.");
     }
   };
 
   useEffect(() => {
-    fetchAllApplications();
-    fetchMentors();
-  }, []);
+    fetchApplication();
+    fetchDocuments();
+  }, [id]);
+
+  if (loading) {
+    return <p style={{ padding: "20px" }}>Učitavanje...</p>;
+  }
+
+  if (!application) {
+    return <p style={{ padding: "20px" }}>Prijava nije pronađena.</p>;
+  }
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>Sve prijave prakse</h2>
+      <h2>Detalji prijave prakse</h2>
 
       <Link to="/dashboard">← Natrag na dashboard</Link>
 
       <br /><br />
 
-      {loading ? (
-        <p>Učitavanje...</p>
-      ) : applications.length === 0 ? (
-        <p>Nema prijava.</p>
-      ) : (
-        <div>
-          {applications.map((app) => (
-            <div
-              key={app.id}
-              style={{
-                border: "1px solid #ccc",
-                padding: "15px",
-                marginBottom: "15px",
-                borderRadius: "8px",
-                backgroundColor: "#fff",
-              }}
-            >
-              <p><strong>ID prijave:</strong> {app.id}</p>
-              <p><strong>Student:</strong> {app.student_ime} {app.student_prezime}</p>
-              <p><strong>Institucija:</strong> {app.institucija_naziv || "-"}</p>
-              <p><strong>Naziv pozicije:</strong> {app.naziv_pozicije}</p>
-              <p><strong>Opis prakse:</strong> {app.opis_prakse}</p>
-              <p><strong>Datum početka:</strong> {app.datum_pocetka?.slice(0, 10)}</p>
-              <p><strong>Datum završetka:</strong> {app.datum_zavrsetka?.slice(0, 10)}</p>
-              <p><strong>Status:</strong> {app.status}</p>
-              <p>
-                <strong>Mentor:</strong>{" "}
-                {app.mentor_ime ? `${app.mentor_ime} ${app.mentor_prezime}` : "Nije dodijeljen"}
-              </p>
+      <div
+        style={{
+          border: "1px solid #ccc",
+          padding: "20px",
+          borderRadius: "8px",
+          backgroundColor: "#fff",
+          marginBottom: "20px",
+        }}
+      >
+        <h3>Osnovni podaci</h3>
+        <p><strong>ID prijave:</strong> {application.id}</p>
+        <p><strong>Naziv pozicije:</strong> {application.naziv_pozicije}</p>
+        <p><strong>Opis prakse:</strong> {application.opis_prakse}</p>
+        <p><strong>Status:</strong> {application.status}</p>
+        <p><strong>Datum početka:</strong> {application.datum_pocetka?.slice(0, 10)}</p>
+        <p><strong>Datum završetka:</strong> {application.datum_zavrsetka?.slice(0, 10)}</p>
 
-              <Link to={`/applications/${app.id}`}>Pogledaj detalje</Link>
+        <hr />
 
-              <br /><br />
+        <h3>Student</h3>
+        <p>
+          <strong>Ime i prezime:</strong>{" "}
+          {application.student_ime} {application.student_prezime}
+        </p>
+        <p><strong>Email:</strong> {application.student_email}</p>
 
-              <label>Promijeni status: </label>
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleStatusChange(app.id, e.target.value);
-                  }
-                }}
-              >
-                <option value="" disabled>
-                  Odaberi status
-                </option>
-                <option value="predano">predano</option>
-                <option value="u_obradi">u_obradi</option>
-                <option value="odobreno">odobreno</option>
-                <option value="u_tijeku">u_tijeku</option>
-                <option value="zavrseno">zavrseno</option>
-                <option value="odbijeno">odbijeno</option>
-              </select>
+        <hr />
 
-              <br /><br />
+        <h3>Institucija</h3>
+        <p><strong>Naziv:</strong> {application.institucija_naziv}</p>
+        <p><strong>Adresa:</strong> {application.institucija_adresa || "-"}</p>
+        <p><strong>Grad:</strong> {application.institucija_grad || "-"}</p>
+        <p><strong>Kontakt email:</strong> {application.institucija_kontakt_email || "-"}</p>
+        <p><strong>Kontakt osoba:</strong> {application.institucija_kontakt_osoba || "-"}</p>
 
-              <label>Dodijeli mentora: </label>
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAssignMentor(app.id, Number(e.target.value));
-                  }
-                }}
-              >
-                <option value="" disabled>
-                  Odaberi mentora
-                </option>
-                {mentors.map((mentor) => (
-                  <option key={mentor.id} value={mentor.id}>
-                    {mentor.ime} {mentor.prezime}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
-      )}
+        <hr />
+
+        <h3>Mentor</h3>
+        <p>
+          {application.mentor_ime
+            ? `${application.mentor_ime} ${application.mentor_prezime}`
+            : "Mentor nije dodijeljen"}
+        </p>
+
+        <hr />
+
+        <h3>Završna evidencija</h3>
+        <p><strong>Ocjena:</strong> {application.ocjena || "Nije unesena"}</p>
+        <p>
+          <strong>Završno izvješće:</strong>{" "}
+          {application.zavrsno_izvjesce_tekst || "Nije uneseno"}
+        </p>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #ccc",
+          padding: "20px",
+          borderRadius: "8px",
+          backgroundColor: "#fff",
+          marginBottom: "20px",
+        }}
+      >
+        <h3>Upload dokumenta</h3>
+
+        <input
+          type="text"
+          placeholder="Naziv dokumenta"
+          value={nazivDokumenta}
+          onChange={(e) => setNazivDokumenta(e.target.value)}
+        />
+
+        <br /><br />
+
+        <select value={tipDokumenta} onChange={(e) => setTipDokumenta(e.target.value)}>
+          <option value="sporazum">Sporazum o praksi</option>
+          <option value="projektni_zadatak">Projektni zadatak</option>
+          <option value="zavrsno_izvjesce">Završno izvješće</option>
+          <option value="ostalo">Ostalo</option>
+        </select>
+
+        <br /><br />
+
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx"
+          onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+        />
+
+        <br /><br />
+
+        <button onClick={handleUpload}>Upload dokumenta</button>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #ccc",
+          padding: "20px",
+          borderRadius: "8px",
+          backgroundColor: "#fff",
+        }}
+      >
+        <h3>Dokumenti</h3>
+
+        {documents.length === 0 ? (
+          <p>Nema uploadanih dokumenata.</p>
+        ) : (
+          <ul>
+            {documents.map((doc) => (
+              <li key={doc.id}>
+                <strong>{doc.naziv_dokumenta}</strong> — {doc.tip_dokumenta}{" "}
+                <a
+                  href={`http://localhost:5000/${doc.putanja.replace("\\", "/")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Otvori
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };
 
-export default AllApplicationsPage;
+export default ApplicationDetailsPage;

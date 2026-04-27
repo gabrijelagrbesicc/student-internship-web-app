@@ -14,7 +14,6 @@ type ApplicationDetails = {
   status: string;
   ocjena: number | null;
   zavrsno_izvjesce_tekst: string | null;
-  created_at: string;
 
   student_ime?: string;
   student_prezime?: string;
@@ -30,16 +29,29 @@ type ApplicationDetails = {
   mentor_prezime?: string;
 };
 
+type DocumentItem = {
+  id: number;
+  naziv_dokumenta: string;
+  tip_dokumenta: string;
+  putanja: string;
+};
+
 const ApplicationDetailsPage = () => {
   const { id } = useParams();
+
   const [application, setApplication] = useState<ApplicationDetails | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [nazivDokumenta, setNazivDokumenta] = useState("");
+  const [tipDokumenta, setTipDokumenta] = useState("sporazum");
+  const [file, setFile] = useState<File | null>(null);
+
+  const token = localStorage.getItem("token");
 
   const fetchApplication = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await axios.get<ApplicationDetails>(
+      const res = await axios.get(
         `http://localhost:5000/api/applications/${id}`,
         {
           headers: {
@@ -51,23 +63,74 @@ const ApplicationDetailsPage = () => {
       setApplication(res.data);
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju detalja prijave.");
+      alert("Greška pri dohvaćanju detalja.");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchDocuments = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/documents/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setDocuments(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Odaberi dokument.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+
+      formData.append("prijava_id", String(id));
+      formData.append("naziv_dokumenta", nazivDokumenta);
+      formData.append("tip_dokumenta", tipDokumenta);
+      formData.append("dokument", file);
+
+      await axios.post(
+        "http://localhost:5000/api/documents/upload",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Dokument uploadan.");
+
+      setNazivDokumenta("");
+      setTipDokumenta("sporazum");
+      setFile(null);
+
+      fetchDocuments();
+    } catch (error) {
+      console.error(error);
+      alert("Greška kod uploada.");
+    }
+  };
+
   useEffect(() => {
     fetchApplication();
+    fetchDocuments();
   }, [id]);
 
-  if (loading) {
-    return <p style={{ padding: "20px" }}>Učitavanje...</p>;
-  }
+  if (loading) return <p>Učitavanje...</p>;
 
-  if (!application) {
-    return <p style={{ padding: "20px" }}>Prijava nije pronađena.</p>;
-  }
+  if (!application) return <p>Prijava nije pronađena.</p>;
 
   return (
     <div style={{ padding: "20px" }}>
@@ -75,59 +138,110 @@ const ApplicationDetailsPage = () => {
 
       <Link to="/dashboard">← Natrag na dashboard</Link>
 
-      <br /><br />
+      <br />
+      <br />
 
-      <div
-        style={{
-          border: "1px solid #ccc",
-          padding: "20px",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-        }}
-      >
+      <div style={{ border: "1px solid gray", padding: "20px" }}>
         <h3>Osnovni podaci</h3>
-        <p><strong>ID prijave:</strong> {application.id}</p>
-        <p><strong>Naziv pozicije:</strong> {application.naziv_pozicije}</p>
-        <p><strong>Opis prakse:</strong> {application.opis_prakse}</p>
+
+        <p><strong>ID:</strong> {application.id}</p>
+        <p><strong>Pozicija:</strong> {application.naziv_pozicije}</p>
+        <p><strong>Opis:</strong> {application.opis_prakse}</p>
         <p><strong>Status:</strong> {application.status}</p>
-        <p><strong>Datum početka:</strong> {application.datum_pocetka?.slice(0, 10)}</p>
-        <p><strong>Datum završetka:</strong> {application.datum_zavrsetka?.slice(0, 10)}</p>
 
         <hr />
 
         <h3>Student</h3>
+
         <p>
-          <strong>Ime i prezime:</strong>{" "}
           {application.student_ime} {application.student_prezime}
         </p>
-        <p><strong>Email:</strong> {application.student_email}</p>
+
+        <p>{application.student_email}</p>
 
         <hr />
 
         <h3>Institucija</h3>
-        <p><strong>Naziv:</strong> {application.institucija_naziv}</p>
-        <p><strong>Adresa:</strong> {application.institucija_adresa || "-"}</p>
-        <p><strong>Grad:</strong> {application.institucija_grad || "-"}</p>
-        <p><strong>Kontakt email:</strong> {application.institucija_kontakt_email || "-"}</p>
-        <p><strong>Kontakt osoba:</strong> {application.institucija_kontakt_osoba || "-"}</p>
+
+        <p>{application.institucija_naziv}</p>
+        <p>{application.institucija_adresa}</p>
+        <p>{application.institucija_grad}</p>
 
         <hr />
 
         <h3>Mentor</h3>
+
         <p>
           {application.mentor_ime
             ? `${application.mentor_ime} ${application.mentor_prezime}`
-            : "Mentor nije dodijeljen"}
+            : "Nije dodijeljen"}
         </p>
+      </div>
 
-        <hr />
+      <br />
 
-        <h3>Završna evidencija</h3>
-        <p><strong>Ocjena:</strong> {application.ocjena || "Nije unesena"}</p>
-        <p>
-          <strong>Završno izvješće:</strong>{" "}
-          {application.zavrsno_izvjesce_tekst || "Nije uneseno"}
-        </p>
+      <div style={{ border: "1px solid gray", padding: "20px" }}>
+        <h3>Upload dokumenta</h3>
+
+        <input
+          type="text"
+          placeholder="Naziv dokumenta"
+          value={nazivDokumenta}
+          onChange={(e) => setNazivDokumenta(e.target.value)}
+        />
+
+        <br />
+        <br />
+
+        <select
+          value={tipDokumenta}
+          onChange={(e) => setTipDokumenta(e.target.value)}
+        >
+          <option value="sporazum">Sporazum</option>
+          <option value="projektni_zadatak">Projektni zadatak</option>
+          <option value="zavrsno_izvjesce">Završno izvješće</option>
+          <option value="ostalo">Ostalo</option>
+        </select>
+
+        <br />
+        <br />
+
+        <input
+          type="file"
+          onChange={(e) =>
+            setFile(e.target.files ? e.target.files[0] : null)
+          }
+        />
+
+        <br />
+        <br />
+
+        <button onClick={handleUpload}>Upload dokumenta</button>
+      </div>
+
+      <br />
+
+      <div style={{ border: "1px solid gray", padding: "20px" }}>
+        <h3>Dokumenti</h3>
+
+        {documents.length === 0 ? (
+          <p>Nema dokumenata.</p>
+        ) : (
+          <ul>
+            {documents.map((doc) => (
+              <li key={doc.id}>
+                {doc.naziv_dokumenta} ({doc.tip_dokumenta}){" "}
+                <a
+                  href={`http://localhost:5000/${doc.putanja}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Otvori
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
