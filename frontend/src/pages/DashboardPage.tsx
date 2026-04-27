@@ -52,9 +52,23 @@ const DashboardPage = () => {
           <p><strong>Uloga:</strong> {user.role}</p>
 
           <br />
-          <Link to="/applications/new">Nova prijava prakse</Link>
 
-          <br /><br />
+          {user.role === "student" && (
+            <>
+              <Link to="/applications/new">Nova prijava prakse</Link>
+              <br /><br />
+              <Link to="/applications/my">Moje prijave</Link>
+              <br /><br />
+            </>
+          )}
+
+          {(user.role === "mentor" || user.role === "admin") && (
+            <>
+              <Link to="/applications/all">Sve prijave</Link>
+              <br /><br />
+            </>
+          )}
+
           <button onClick={handleLogout}>Logout</button>
         </div>
       ) : (
