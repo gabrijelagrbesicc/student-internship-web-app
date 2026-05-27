@@ -1,80 +1,105 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import AppLayout from "../components/AppLayout";
+import { API_BASE, authHeaders, type User } from "../types";
 
-type User = {
-  id: number;
-  ime: string;
-  prezime: string;
-  email: string;
-  role: "student" | "mentor" | "admin";
-  created_at?: string;
+type Stats = {
+  total: number;
+  predano: number;
+  odobreno: number;
+  u_tijeku: number;
+  zavrseno: number;
 };
 
 const DashboardPage = () => {
   const [user, setUser] = useState<User | null>(null);
-
-  const fetchMe = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await axios.get<User>("http://localhost:5000/api/users/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setUser(res.data);
-    } catch (error) {
-      console.error(error);
-      alert("Greška pri dohvaćanju korisnika.");
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
-  };
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    fetchMe();
+    axios
+      .get<User>(`${API_BASE}/api/users/me`, { headers: authHeaders() })
+      .then((res) => {
+        setUser(res.data);
+        localStorage.setItem("userRole", res.data.role);
+        if (res.data.role === "mentor" || res.data.role === "admin") {
+          axios
+            .get<{ status: string }[]>(`${API_BASE}/api/applications`, { headers: authHeaders() })
+            .then((apps) => {
+              const list = apps.data;
+              setStats({
+                total: list.length,
+                predano: list.filter((a) => a.status === "predano").length,
+                odobreno: list.filter((a) => a.status === "odobreno").length,
+                u_tijeku: list.filter((a) => a.status === "u_tijeku").length,
+                zavrseno: list.filter((a) => a.status === "zavrseno").length,
+              });
+            })
+            .catch(console.error);
+        }
+      })
+      .catch(console.error);
+
+    axios
+      .get<{ procitano: boolean | number }[]>(`${API_BASE}/api/notifications/my`, {
+        headers: authHeaders(),
+      })
+      .then((res) => setUnreadNotifications(res.data.filter((n) => !n.procitano).length))
+      .catch(console.error);
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Dashboard</h2>
-
-      {user ? (
-        <div>
-          <p><strong>Ime:</strong> {user.ime}</p>
-          <p><strong>Prezime:</strong> {user.prezime}</p>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Uloga:</strong> {user.role}</p>
-
-          <br />
-
-          {user.role === "student" && (
-            <>
-              <Link to="/applications/new">Nova prijava prakse</Link>
-              <br /><br />
-              <Link to="/applications/my">Moje prijave</Link>
-              <br /><br />
-            </>
-          )}
-
-          {(user.role === "mentor" || user.role === "admin") && (
-            <>
-              <Link to="/applications/all">Sve prijave</Link>
-              <br /><br />
-            </>
-          )}
-
-          <button onClick={handleLogout}>Logout</button>
+    <AppLayout
+      backTo={false}
+      title={user ? `Dobrodošli, ${user.ime}!` : "Dashboard"}
+      subtitle={user ? `Uloga: ${user.role}` : undefined}
+    >
+      {stats && user && (user.role === "mentor" || user.role === "admin") && (
+        <div className="stat-grid">
+          <div className="stat-card">
+            <h3>Ukupno</h3>
+            <div className="value">{stats.total}</div>
+          </div>
+          <div className="stat-card">
+            <h3>Predano</h3>
+            <div className="value">{stats.predano}</div>
+          </div>
+          <div className="stat-card">
+            <h3>Odobreno</h3>
+            <div className="value">{stats.odobreno}</div>
+          </div>
+          <div className="stat-card">
+            <h3>U tijeku</h3>
+            <div className="value">{stats.u_tijeku}</div>
+          </div>
+          <div className="stat-card">
+            <h3>Završeno</h3>
+            <div className="value">{stats.zavrseno}</div>
+          </div>
         </div>
-      ) : (
-        <p>Učitavanje...</p>
       )}
-    </div>
+
+      <h2 className="section-title">Brzi pristup</h2>
+      <div className="quick-links">
+        {user?.role === "student" && (
+          <>
+            <Link to="/applications/new" className="quick-link">+ Nova prijava prakse</Link>
+            <Link to="/applications/my" className="quick-link">Moje prijave</Link>
+          </>
+        )}
+        {(user?.role === "mentor" || user?.role === "admin") && (
+          <>
+            <Link to="/applications/all" className="quick-link">Sve prijave prakse</Link>
+            <Link to="/reports" className="quick-link">Izvještaji</Link>
+            <Link to="/institutions" className="quick-link">Institucije</Link>
+          </>
+        )}
+        <Link to="/notifications" className="quick-link">
+          Obavijesti{unreadNotifications > 0 ? ` (${unreadNotifications} novo)` : ""}
+        </Link>
+      </div>
+    </AppLayout>
   );
 };
 

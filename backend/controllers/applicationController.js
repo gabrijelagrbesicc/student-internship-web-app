@@ -1,4 +1,5 @@
 const { sql, poolPromise } = require("../config/db");
+const { sendStatusChangeEmail } = require("../services/emailService");
 
 const createApplication = async (req, res) => {
     try {
@@ -106,6 +107,59 @@ const getAllApplications = async (req, res) => {
     }
 };
 
+const getApplicationById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pool = await poolPromise;
+
+        const result = await pool.request()
+            .input("id", sql.Int, id)
+            .query(`
+                SELECT 
+                    pp.*,
+                    s.ime AS student_ime,
+                    s.prezime AS student_prezime,
+                    s.email AS student_email,
+                    i.naziv AS institucija_naziv,
+                    i.adresa AS institucija_adresa,
+                    i.grad AS institucija_grad,
+                    i.kontakt_email AS institucija_kontakt_email,
+                    i.kontakt_osoba AS institucija_kontakt_osoba,
+                    m.ime AS mentor_ime,
+                    m.prezime AS mentor_prezime
+                FROM prijave_prakse pp
+                LEFT JOIN users s ON pp.student_id = s.id
+                LEFT JOIN users m ON pp.mentor_id = m.id
+                LEFT JOIN institucije i ON pp.institucija_id = i.id
+                WHERE pp.id = @id
+            `);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({
+                message: "Prijava nije pronađena."
+            });
+        }
+
+        const application = result.recordset[0];
+
+        if (
+            req.user.role === "student" &&
+            application.student_id !== req.user.id
+        ) {
+            return res.status(403).json({
+                message: "Nemate pristup ovoj prijavi."
+            });
+        }
+
+        res.status(200).json(application);
+    } catch (error) {
+        res.status(500).json({
+            message: "Greška pri dohvaćanju prijave.",
+            error: error.message
+        });
+    }
+};
+
 const updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -132,9 +186,16 @@ const updateStatus = async (req, res) => {
         const oldStatusResult = await pool.request()
             .input("id", sql.Int, id)
             .query(`
-                SELECT status 
-                FROM prijave_prakse
-                WHERE id = @id
+                SELECT 
+                    pp.status,
+                    pp.naziv_pozicije,
+                    pp.student_id,
+                    u.email AS student_email,
+                    u.ime AS student_ime,
+                    u.prezime AS student_prezime
+                FROM prijave_prakse pp
+                LEFT JOIN users u ON pp.student_id = u.id
+                WHERE pp.id = @id
             `);
 
         if (oldStatusResult.recordset.length === 0) {
@@ -165,6 +226,49 @@ const updateStatus = async (req, res) => {
                 VALUES
                 (@prijava_id, @stari_status, @novi_status, @promijenio_korisnik_id)
             `);
+
+        const prijava = oldStatusResult.recordset[0];
+        const mozeSlatiMail =
+            prijava.student_email || process.env.FORCE_EMAIL_TO?.trim();
+
+        if (mozeSlatiMail && stari_status !== status) {
+            try {
+                await sendStatusChangeEmail({
+                    to: prijava.student_email || process.env.FORCE_EMAIL_TO.trim(),
+                    studentIme: `${prijava.student_ime} ${prijava.student_prezime}`,
+                    prijavaId: id,
+                    stariStatus: stari_status,
+                    noviStatus: status,
+                    nazivPozicije: prijava.naziv_pozicije,
+                });
+            } catch (mailError) {
+                console.error("Greška pri slanju e-maila:", mailError.message);
+            }
+
+            const poruka = `Status prijave #${id} promijenjen: ${stari_status} → ${status}`;
+            const allowedTips = ["email", "sustav"];
+
+            for (const tip of allowedTips) {
+                try {
+                    await pool.request()
+                        .input("korisnik_id", sql.Int, prijava.student_id)
+                        .input("poruka", sql.NVarChar, poruka)
+                        .input("tip", sql.NVarChar, tip)
+                        .query(`
+                            INSERT INTO notifikacije (korisnik_id, poruka, tip, procitano)
+                            VALUES (@korisnik_id, @poruka, @tip, 0)
+                        `);
+                    break;
+                } catch (notifError) {
+                    if (tip === allowedTips[allowedTips.length - 1]) {
+                        console.error(
+                            "Greška pri upisu notifikacije:",
+                            notifError.message
+                        );
+                    }
+                }
+            }
+        }
 
         res.status(200).json({
             message: "Status uspješno promijenjen."
@@ -223,54 +327,123 @@ const assignMentor = async (req, res) => {
     }
 };
 
-const getApplicationById = async (req, res) => {
+const gradeApplication = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { ocjena, zavrsno_izvjesce_tekst } = req.body;
+
+        if (ocjena === undefined && !zavrsno_izvjesce_tekst) {
+            return res.status(400).json({
+                message: "Unesite ocjenu ili završno izvješće."
+            });
+        }
+
+        if (ocjena !== undefined && (ocjena < 1 || ocjena > 5)) {
+            return res.status(400).json({
+                message: "Ocjena mora biti između 1 i 5."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        await pool.request()
+            .input("id", sql.Int, id)
+            .input("ocjena", sql.Int, ocjena ?? null)
+            .input("zavrsno_izvjesce_tekst", sql.NVarChar(sql.MAX), zavrsno_izvjesce_tekst || null)
+            .query(`
+                UPDATE prijave_prakse
+                SET ocjena = @ocjena,
+                    zavrsno_izvjesce_tekst = @zavrsno_izvjesce_tekst
+                WHERE id = @id
+            `);
+
+        res.status(200).json({
+            message: "Ocjena i izvješće uspješno spremljeni."
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Greška pri spremanju ocjene/izvješća.",
+            error: error.message
+        });
+    }
+};
+
+const getStatusHistory = async (req, res) => {
     try {
         const { id } = req.params;
         const pool = await poolPromise;
 
-        const result = await pool.request()
+        const appResult = await pool.request()
             .input("id", sql.Int, id)
-            .query(`
-                SELECT 
-                    pp.*,
-                    s.ime AS student_ime,
-                    s.prezime AS student_prezime,
-                    s.email AS student_email,
-                    i.naziv AS institucija_naziv,
-                    i.adresa AS institucija_adresa,
-                    i.grad AS institucija_grad,
-                    i.kontakt_email AS institucija_kontakt_email,
-                    i.kontakt_osoba AS institucija_kontakt_osoba,
-                    m.ime AS mentor_ime,
-                    m.prezime AS mentor_prezime
-                FROM prijave_prakse pp
-                LEFT JOIN users s ON pp.student_id = s.id
-                LEFT JOIN users m ON pp.mentor_id = m.id
-                LEFT JOIN institucije i ON pp.institucija_id = i.id
-                WHERE pp.id = @id
-            `);
+            .query(`SELECT student_id FROM prijave_prakse WHERE id = @id`);
 
-        if (result.recordset.length === 0) {
-            return res.status(404).json({
-                message: "Prijava nije pronađena."
-            });
+        if (appResult.recordset.length === 0) {
+            return res.status(404).json({ message: "Prijava nije pronađena." });
         }
-
-        const application = result.recordset[0];
 
         if (
             req.user.role === "student" &&
-            application.student_id !== req.user.id
+            appResult.recordset[0].student_id !== req.user.id
         ) {
-            return res.status(403).json({
-                message: "Nemate pristup ovoj prijavi."
-            });
+            return res.status(403).json({ message: "Nemate pristup ovoj prijavi." });
         }
 
-        res.status(200).json(application);
+        const result = await pool.request()
+            .input("prijava_id", sql.Int, id)
+            .query(`
+                SELECT
+                    sh.id,
+                    sh.stari_status,
+                    sh.novi_status,
+                    sh.datum_promjene,
+                    u.ime AS promijenio_ime,
+                    u.prezime AS promijenio_prezime
+                FROM status_history sh
+                LEFT JOIN users u ON sh.promijenio_korisnik_id = u.id
+                WHERE sh.prijava_id = @prijava_id
+                ORDER BY sh.datum_promjene DESC
+            `);
+
+        res.status(200).json(result.recordset);
     } catch (error) {
         res.status(500).json({
-            message: "Greška pri dohvaćanju prijave.",
+            message: "Greška pri dohvaćanju povijesti statusa.",
+            error: error.message
+        });
+    }
+};
+
+const getApplicationReports = async (req, res) => {
+    try {
+        const pool = await poolPromise;
+
+        const byStatus = await pool.request().query(`
+            SELECT status, COUNT(*) AS broj
+            FROM prijave_prakse
+            GROUP BY status
+            ORDER BY status
+        `);
+
+        const byInstitution = await pool.request().query(`
+            SELECT i.naziv AS institucija_naziv, COUNT(*) AS broj
+            FROM prijave_prakse pp
+            LEFT JOIN institucije i ON pp.institucija_id = i.id
+            GROUP BY i.naziv
+            ORDER BY broj DESC
+        `);
+
+        const totalResult = await pool.request().query(`
+            SELECT COUNT(*) AS ukupno FROM prijave_prakse
+        `);
+
+        res.status(200).json({
+            ukupno: totalResult.recordset[0].ukupno,
+            po_statusu: byStatus.recordset,
+            po_instituciji: byInstitution.recordset
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Greška pri generiranju izvještaja.",
             error: error.message
         });
     }
@@ -282,5 +455,8 @@ module.exports = {
     getAllApplications,
     getApplicationById,
     updateStatus,
-    assignMentor
+    assignMentor,
+    gradeApplication,
+    getStatusHistory,
+    getApplicationReports
 };

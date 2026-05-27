@@ -1,275 +1,248 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
+import AppLayout from "../components/AppLayout";
+import StatusBadge from "../components/StatusBadge";
+import {
+  API_BASE,
+  authHeaders,
+  STATUS_OPTIONS,
+  type Application,
+  type Institution,
+  type User,
+} from "../types";
 
-type ApplicationDetails = {
-  id: number;
-  student_id: number;
-  institucija_id: number;
-  mentor_id: number | null;
-  naziv_pozicije: string;
-  opis_prakse: string;
-  datum_pocetka: string;
-  datum_zavrsetka: string;
-  status: string;
-  ocjena: number | null;
-  zavrsno_izvjesce_tekst: string | null;
-  created_at: string;
+type Mentor = Pick<User, "id" | "ime" | "prezime">;
 
-  student_ime?: string;
-  student_prezime?: string;
-  student_email?: string;
+const FILTER_STATUS_OPTIONS = [{ value: "", label: "Svi statusi" }, ...STATUS_OPTIONS];
 
-  institucija_naziv?: string;
-  institucija_adresa?: string;
-  institucija_grad?: string;
-  institucija_kontakt_email?: string;
-  institucija_kontakt_osoba?: string;
-
-  mentor_ime?: string;
-  mentor_prezime?: string;
-};
-
-type DocumentItem = {
-  id: number;
-  prijava_id: number;
-  naziv_dokumenta: string;
-  tip_dokumenta: string;
-  putanja: string;
-  upload_date: string;
-};
-
-const ApplicationDetailsPage = () => {
-  const { id } = useParams();
-
-  const [application, setApplication] = useState<ApplicationDetails | null>(null);
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+const AllApplicationsPage = () => {
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [institutionFilter, setInstitutionFilter] = useState("");
+  const [statusDraft, setStatusDraft] = useState<Record<number, string>>({});
+  const [mentorDraft, setMentorDraft] = useState<Record<number, string>>({});
 
-  const [nazivDokumenta, setNazivDokumenta] = useState("");
-  const [tipDokumenta, setTipDokumenta] = useState("sporazum");
-  const [file, setFile] = useState<File | null>(null);
-
-  const token = localStorage.getItem("token");
-
-  const fetchApplication = async () => {
+  const fetchApplications = async () => {
     try {
-      const res = await axios.get<ApplicationDetails>(
-        `http://localhost:5000/api/applications/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setApplication(res.data);
+      const res = await axios.get<Application[]>(`${API_BASE}/api/applications`, {
+        headers: authHeaders(),
+      });
+      setApplications(res.data);
+      const statusInit: Record<number, string> = {};
+      const mentorInit: Record<number, string> = {};
+      res.data.forEach((app) => {
+        statusInit[app.id] = app.status;
+        mentorInit[app.id] = app.mentor_id ? String(app.mentor_id) : "";
+      });
+      setStatusDraft(statusInit);
+      setMentorDraft(mentorInit);
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju detalja prijave.");
+      alert("Greška pri dohvaćanju prijava.");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDocuments = async () => {
+  const handleStatusChange = async (applicationId: number) => {
+    const newStatus = statusDraft[applicationId];
+    if (!newStatus) return;
     try {
-      const res = await axios.get<DocumentItem[]>(
-        `http://localhost:5000/api/documents/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await axios.put(
+        `${API_BASE}/api/applications/${applicationId}/status`,
+        { status: newStatus },
+        { headers: authHeaders() }
       );
-
-      setDocuments(res.data);
+      alert("Status uspješno promijenjen.");
+      fetchApplications();
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju dokumenata.");
+      alert("Greška pri promjeni statusa.");
     }
   };
 
-  const handleUpload = async () => {
-    if (!file || !nazivDokumenta || !tipDokumenta || !id) {
-      alert("Unesi naziv dokumenta, tip dokumenta i odaberi datoteku.");
+  const handleAssignMentor = async (applicationId: number) => {
+    const mentorId = mentorDraft[applicationId];
+    if (!mentorId) {
+      alert("Odaberi mentora.");
       return;
     }
-
     try {
-      const formData = new FormData();
-
-      formData.append("prijava_id", id);
-      formData.append("naziv_dokumenta", nazivDokumenta);
-      formData.append("tip_dokumenta", tipDokumenta);
-      formData.append("dokument", file);
-
-      await axios.post("http://localhost:5000/api/documents/upload", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      alert("Dokument uspješno uploadan.");
-
-      setNazivDokumenta("");
-      setTipDokumenta("sporazum");
-      setFile(null);
-
-      fetchDocuments();
+      await axios.put(
+        `${API_BASE}/api/applications/${applicationId}/assign-mentor`,
+        { mentor_id: Number(mentorId) },
+        { headers: authHeaders() }
+      );
+      alert("Mentor uspješno dodijeljen.");
+      fetchApplications();
     } catch (error) {
       console.error(error);
-      alert("Greška pri uploadu dokumenta.");
+      alert("Greška pri dodjeli mentora.");
     }
   };
 
+  const filteredApplications = applications.filter((app) => {
+    const q = searchTerm.toLowerCase();
+    const matchesSearch =
+      app.student_ime?.toLowerCase().includes(q) ||
+      app.student_prezime?.toLowerCase().includes(q) ||
+      app.naziv_pozicije?.toLowerCase().includes(q) ||
+      app.institucija_naziv?.toLowerCase().includes(q);
+    const matchesStatus = !statusFilter || app.status === statusFilter;
+    const matchesInstitution =
+      !institutionFilter || app.institucija_id === Number(institutionFilter);
+    return matchesSearch && matchesStatus && matchesInstitution;
+  });
+
   useEffect(() => {
-    fetchApplication();
-    fetchDocuments();
-  }, [id]);
-
-  if (loading) {
-    return <p style={{ padding: "20px" }}>Učitavanje...</p>;
-  }
-
-  if (!application) {
-    return <p style={{ padding: "20px" }}>Prijava nije pronađena.</p>;
-  }
+    fetchApplications();
+    axios
+      .get<Mentor[]>(`${API_BASE}/api/users/mentors`, { headers: authHeaders() })
+      .then((res) => setMentors(res.data))
+      .catch(console.error);
+    axios
+      .get<Institution[]>(`${API_BASE}/api/institutions`, { headers: authHeaders() })
+      .then((res) => setInstitutions(res.data))
+      .catch(console.error);
+  }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Detalji prijave prakse</h2>
-
-      <Link to="/dashboard">← Natrag na dashboard</Link>
-
-      <br /><br />
-
-      <div
-        style={{
-          border: "1px solid #ccc",
-          padding: "20px",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Osnovni podaci</h3>
-        <p><strong>ID prijave:</strong> {application.id}</p>
-        <p><strong>Naziv pozicije:</strong> {application.naziv_pozicije}</p>
-        <p><strong>Opis prakse:</strong> {application.opis_prakse}</p>
-        <p><strong>Status:</strong> {application.status}</p>
-        <p><strong>Datum početka:</strong> {application.datum_pocetka?.slice(0, 10)}</p>
-        <p><strong>Datum završetka:</strong> {application.datum_zavrsetka?.slice(0, 10)}</p>
-
-        <hr />
-
-        <h3>Student</h3>
-        <p>
-          <strong>Ime i prezime:</strong>{" "}
-          {application.student_ime} {application.student_prezime}
-        </p>
-        <p><strong>Email:</strong> {application.student_email}</p>
-
-        <hr />
-
-        <h3>Institucija</h3>
-        <p><strong>Naziv:</strong> {application.institucija_naziv}</p>
-        <p><strong>Adresa:</strong> {application.institucija_adresa || "-"}</p>
-        <p><strong>Grad:</strong> {application.institucija_grad || "-"}</p>
-        <p><strong>Kontakt email:</strong> {application.institucija_kontakt_email || "-"}</p>
-        <p><strong>Kontakt osoba:</strong> {application.institucija_kontakt_osoba || "-"}</p>
-
-        <hr />
-
-        <h3>Mentor</h3>
-        <p>
-          {application.mentor_ime
-            ? `${application.mentor_ime} ${application.mentor_prezime}`
-            : "Mentor nije dodijeljen"}
-        </p>
-
-        <hr />
-
-        <h3>Završna evidencija</h3>
-        <p><strong>Ocjena:</strong> {application.ocjena || "Nije unesena"}</p>
-        <p>
-          <strong>Završno izvješće:</strong>{" "}
-          {application.zavrsno_izvjesce_tekst || "Nije uneseno"}
-        </p>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #ccc",
-          padding: "20px",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Upload dokumenta</h3>
-
-        <input
-          type="text"
-          placeholder="Naziv dokumenta"
-          value={nazivDokumenta}
-          onChange={(e) => setNazivDokumenta(e.target.value)}
-        />
-
-        <br /><br />
-
-        <select value={tipDokumenta} onChange={(e) => setTipDokumenta(e.target.value)}>
-          <option value="sporazum">Sporazum o praksi</option>
-          <option value="projektni_zadatak">Projektni zadatak</option>
-          <option value="zavrsno_izvjesce">Završno izvješće</option>
-          <option value="ostalo">Ostalo</option>
-        </select>
-
-        <br /><br />
-
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx"
-          onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-        />
-
-        <br /><br />
-
-        <button onClick={handleUpload}>Upload dokumenta</button>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #ccc",
-          padding: "20px",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-        }}
-      >
-        <h3>Dokumenti</h3>
-
-        {documents.length === 0 ? (
-          <p>Nema uploadanih dokumenata.</p>
-        ) : (
-          <ul>
-            {documents.map((doc) => (
-              <li key={doc.id}>
-                <strong>{doc.naziv_dokumenta}</strong> — {doc.tip_dokumenta}{" "}
-                <a
-                  href={`http://localhost:5000/${doc.putanja.replace("\\", "/")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Otvori
-                </a>
-              </li>
+    <AppLayout
+      title="Sve prijave prakse"
+      subtitle={`${filteredApplications.length} prijava`}
+    >
+      <div className="filter-bar card" style={{ padding: "16px" }}>
+        <div className="form-group">
+          <label>Pretraga</label>
+          <input
+            type="text"
+            placeholder="Student, pozicija, institucija..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label>Status</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            {FILTER_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value || "all"} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
-          </ul>
-        )}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Institucija</label>
+          <select value={institutionFilter} onChange={(e) => setInstitutionFilter(e.target.value)}>
+            <option value="">Sve institucije</option>
+            {institutions.map((inst) => (
+              <option key={inst.id} value={inst.id}>
+                {inst.naziv}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-    </div>
+
+      {loading ? (
+        <div className="loading-screen">
+          <div className="spinner" />
+          Učitavanje...
+        </div>
+      ) : filteredApplications.length === 0 ? (
+        <div className="empty-state card">
+          <h3>Nema prijava</h3>
+          <p>Nema prijava koje odgovaraju filterima.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {filteredApplications.map((app) => (
+            <div key={app.id} className="card">
+              <div className="flex-between" style={{ flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <h3 style={{ fontFamily: "var(--font-display)", marginBottom: "6px" }}>
+                    #{app.id} — {app.naziv_pozicije}
+                  </h3>
+                  <p className="text-muted">
+                    {app.student_ime} {app.student_prezime} · {app.institucija_naziv || "—"}
+                  </p>
+                  <p className="text-muted" style={{ marginTop: "4px" }}>
+                    Mentor:{" "}
+                    {app.mentor_ime ? `${app.mentor_ime} ${app.mentor_prezime}` : "Nije dodijeljen"}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <StatusBadge status={app.status} />
+                  <Link to={`/applications/${app.id}`} className="btn btn-secondary btn-sm">
+                    Detalji
+                  </Link>
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              <div className="grid-2">
+                <div>
+                  <label>Promijeni status</label>
+                  <div className="form-actions">
+                    <select
+                      value={statusDraft[app.id] ?? app.status}
+                      onChange={(e) =>
+                        setStatusDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
+                      }
+                    >
+                      {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleStatusChange(app.id)}
+                    >
+                      Spremi status
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label>Dodijeli mentora</label>
+                  <div className="form-actions">
+                    <select
+                      value={mentorDraft[app.id] ?? ""}
+                      onChange={(e) =>
+                        setMentorDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
+                      }
+                    >
+                      <option value="">— Odaberi mentora —</option>
+                      {mentors.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.ime} {m.prezime}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleAssignMentor(app.id)}
+                    >
+                      Spremi mentora
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </AppLayout>
   );
 };
 
-export default ApplicationDetailsPage;
+export default AllApplicationsPage;

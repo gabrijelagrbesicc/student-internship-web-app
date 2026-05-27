@@ -6,6 +6,9 @@ import NewApplicationPage from "./pages/NewApplicationPage";
 import MyApplicationsPage from "./pages/MyApplicationsPage";
 import AllApplicationsPage from "./pages/AllApplicationsPage";
 import ApplicationDetailsPage from "./pages/ApplicationDetailsPage";
+import ReportsPage from "./pages/ReportsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import InstitutionsPage from "./pages/InstitutionsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
@@ -27,7 +30,7 @@ function App() {
         <Route
           path="/applications/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["student"]}>
               <NewApplicationPage />
             </ProtectedRoute>
           }
@@ -36,7 +39,7 @@ function App() {
         <Route
           path="/applications/my"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["student"]}>
               <MyApplicationsPage />
             </ProtectedRoute>
           }
@@ -45,8 +48,35 @@ function App() {
         <Route
           path="/applications/all"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["mentor", "admin"]}>
               <AllApplicationsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={["mentor", "admin"]}>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/institutions"
+          element={
+            <ProtectedRoute allowedRoles={["mentor", "admin"]}>
+              <InstitutionsPage />
             </ProtectedRoute>
           }
         />
