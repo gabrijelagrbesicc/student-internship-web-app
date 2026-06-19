@@ -20,18 +20,11 @@ const MyApplicationsPage = () => {
   return (
     <AppLayout title="Moje prijave prakse" subtitle="Pregled svih vaših prijava">
       {loading ? (
-        <div className="loading-screen">
-          <div className="spinner" />
-          Učitavanje...
-        </div>
+        <p>Učitavanje...</p>
       ) : applications.length === 0 ? (
-        <div className="empty-state card">
-          <div className="icon">📋</div>
-          <h3>Nemate prijava</h3>
-          <p>Kreirajte novu prijavu prakse.</p>
-          <Link to="/applications/new" className="btn btn-primary" style={{ marginTop: "16px" }}>
-            Nova prijava
-          </Link>
+        <div className="card">
+          <p>Nemate prijava.</p>
+          <Link to="/applications/new">Klikni ovdje za novu prijavu</Link>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

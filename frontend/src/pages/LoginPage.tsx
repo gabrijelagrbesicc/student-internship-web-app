@@ -33,7 +33,7 @@ const LoginPage = () => {
       localStorage.setItem("userRole", res.data.user.role);
       navigate("/dashboard");
     } catch (error) {
-      alert("Neispravan email ili lozinka.");
+      alert("Greška kod logina - provjeri email i lozinku.");
       console.error(error);
     } finally {
       setLoading(false);
@@ -44,40 +44,36 @@ const LoginPage = () => {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>Studentska<span>Praksa</span></h1>
-          <p>Prijavite se u sustav</p>
+          <h1>Studentska praksa</h1>
+          <p>Prijava u sustav</p>
         </div>
         <form className="auth-form" onSubmit={handleLogin}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email:</label>
             <input
               id="email"
               type="email"
-              placeholder="vas@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Lozinka</label>
+            <label htmlFor="password">Lozinka:</label>
             <input
               id="password"
               type="password"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
-            {loading ? "Prijava..." : "Prijavi se"}
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? "Prijava..." : "Login"}
           </button>
         </form>
-        <p className="text-muted" style={{ textAlign: "center", marginTop: "24px" }}>
-          <Link to="/register" style={{ color: "var(--accent)" }}>
-            Nemaš račun? Registriraj se
-          </Link>
+        <p style={{ marginTop: "16px", textAlign: "center" }}>
+          <Link to="/register">Registracija</Link>
         </p>
       </div>
     </div>

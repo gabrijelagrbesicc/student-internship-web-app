@@ -52,45 +52,49 @@ const DashboardPage = () => {
   return (
     <AppLayout
       backTo={false}
-      title={user ? `Dobrodošli, ${user.ime}!` : "Dashboard"}
-      subtitle={user ? `Uloga: ${user.role}` : undefined}
+      title="Dashboard"
+      subtitle={user ? `${user.ime} ${user.prezime} — uloga: ${user.role}` : undefined}
     >
-      {stats && user && (user.role === "mentor" || user.role === "admin") && (
-        <div className="stat-grid">
-          <div className="stat-card">
-            <h3>Ukupno</h3>
-            <div className="value">{stats.total}</div>
+      {stats && (user?.role === "mentor" || user?.role === "admin") && (
+        <>
+          <p><strong>Statistika prijava:</strong></p>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <h3>Ukupno</h3>
+              <div className="value">{stats.total}</div>
+            </div>
+            <div className="stat-card">
+              <h3>Predano</h3>
+              <div className="value">{stats.predano}</div>
+            </div>
+            <div className="stat-card">
+              <h3>Odobreno</h3>
+              <div className="value">{stats.odobreno}</div>
+            </div>
+            <div className="stat-card">
+              <h3>U tijeku</h3>
+              <div className="value">{stats.u_tijeku}</div>
+            </div>
+            <div className="stat-card">
+              <h3>Završeno</h3>
+              <div className="value">{stats.zavrseno}</div>
+            </div>
           </div>
-          <div className="stat-card">
-            <h3>Predano</h3>
-            <div className="value">{stats.predano}</div>
-          </div>
-          <div className="stat-card">
-            <h3>Odobreno</h3>
-            <div className="value">{stats.odobreno}</div>
-          </div>
-          <div className="stat-card">
-            <h3>U tijeku</h3>
-            <div className="value">{stats.u_tijeku}</div>
-          </div>
-          <div className="stat-card">
-            <h3>Završeno</h3>
-            <div className="value">{stats.zavrseno}</div>
-          </div>
-        </div>
+          <hr className="divider" />
+        </>
       )}
 
-      <h2 className="section-title">Brzi pristup</h2>
+      <p><strong>Linkovi:</strong></p>
       <div className="quick-links">
         {user?.role === "student" && (
           <>
-            <Link to="/applications/new" className="quick-link">+ Nova prijava prakse</Link>
+            <Link to="/applications/new" className="quick-link">Nova prijava prakse</Link>
             <Link to="/applications/my" className="quick-link">Moje prijave</Link>
           </>
         )}
         {(user?.role === "mentor" || user?.role === "admin") && (
           <>
-            <Link to="/applications/all" className="quick-link">Sve prijave prakse</Link>
+            <Link to="/applications/all" className="quick-link">Sve prijave</Link>
             <Link to="/reports" className="quick-link">Izvještaji</Link>
             <Link to="/institutions" className="quick-link">Institucije</Link>
           </>

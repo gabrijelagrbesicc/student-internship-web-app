@@ -128,10 +128,7 @@ const ApplicationDetailsPage = () => {
   if (loading) {
     return (
       <AppLayout title="Detalji prijave">
-        <div className="loading-screen">
-          <div className="spinner" />
-          Učitavanje...
-        </div>
+        <p>Učitavanje...</p>
       </AppLayout>
     );
   }

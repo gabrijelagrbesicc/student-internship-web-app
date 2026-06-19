@@ -15,7 +15,7 @@ const AppLayout = ({ title, subtitle, children, backTo = "/dashboard", actions }
     <div className="container page-content">
       {backTo !== false && (
         <Link to={backTo} className="back-link">
-          ← Natrag
+          &larr; Natrag na početnu
         </Link>
       )}
       <div className="page-header flex-between">
@@ -25,7 +25,7 @@ const AppLayout = ({ title, subtitle, children, backTo = "/dashboard", actions }
         </div>
         {actions}
       </div>
-      <div className="animate-in">{children}</div>
+      {children}
     </div>
   </div>
 );

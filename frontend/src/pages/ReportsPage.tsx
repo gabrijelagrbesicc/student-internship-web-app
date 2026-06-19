@@ -55,10 +55,7 @@ const ReportsPage = () => {
   if (loading) {
     return (
       <AppLayout title="Izvještaji">
-        <div className="loading-screen">
-          <div className="spinner" />
-          Učitavanje...
-        </div>
+        <p>Učitavanje...</p>
       </AppLayout>
     );
   }

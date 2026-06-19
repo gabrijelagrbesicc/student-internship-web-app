@@ -150,14 +150,10 @@ const AllApplicationsPage = () => {
       </div>
 
       {loading ? (
-        <div className="loading-screen">
-          <div className="spinner" />
-          Učitavanje...
-        </div>
+        <p>Učitavanje...</p>
       ) : filteredApplications.length === 0 ? (
-        <div className="empty-state card">
-          <h3>Nema prijava</h3>
-          <p>Nema prijava koje odgovaraju filterima.</p>
+        <div className="card">
+          <p>Nema prijava.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

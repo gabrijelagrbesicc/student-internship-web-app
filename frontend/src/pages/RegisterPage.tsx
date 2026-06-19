@@ -23,7 +23,7 @@ const RegisterPage = () => {
         password,
         role,
       });
-      alert("Registracija uspješna! Sada se možete prijaviti.");
+      alert("Registracija uspješna!");
       navigate("/");
     } catch (error: unknown) {
       const msg =
@@ -40,44 +40,40 @@ const RegisterPage = () => {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>Studentska<span>Praksa</span></h1>
-          <p>Registracija novog korisnika</p>
+          <h1>Registracija</h1>
+          <p>Novi korisnik</p>
         </div>
         <form className="auth-form" onSubmit={handleRegister}>
-          <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="ime">Ime</label>
-              <input id="ime" type="text" value={ime} onChange={(e) => setIme(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label htmlFor="prezime">Prezime</label>
-              <input id="prezime" type="text" value={prezime} onChange={(e) => setPrezime(e.target.value)} required />
-            </div>
+          <div className="form-group">
+            <label>Ime:</label>
+            <input type="text" value={ime} onChange={(e) => setIme(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label>Prezime:</label>
+            <input type="text" value={prezime} onChange={(e) => setPrezime(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Lozinka</label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <label>Email:</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label htmlFor="role">Uloga</label>
-            <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
+            <label>Lozinka:</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Uloga:</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="student">Student</option>
               <option value="mentor">Mentor</option>
-              <option value="admin">Administrator</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
-            {loading ? "Registracija..." : "Registriraj se"}
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? "Spremanje..." : "Registriraj se"}
           </button>
         </form>
-        <p className="text-muted" style={{ textAlign: "center", marginTop: "24px" }}>
-          <Link to="/" style={{ color: "var(--accent)" }}>
-            Već imaš račun? Prijavi se
-          </Link>
+        <p style={{ marginTop: "16px", textAlign: "center" }}>
+          <Link to="/">Natrag na login</Link>
         </p>
       </div>
     </div>

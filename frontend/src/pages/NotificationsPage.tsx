@@ -63,15 +63,10 @@ const NotificationsPage = () => {
       }
     >
       {loading ? (
-        <div className="loading-screen">
-          <div className="spinner" />
-          Učitavanje...
-        </div>
+        <p>Učitavanje...</p>
       ) : notifications.length === 0 ? (
-        <div className="empty-state card">
-          <div className="icon">🔔</div>
-          <h3>Nema obavijesti</h3>
-          <p>Pojavit će se kad mentor promijeni status vaše prijave.</p>
+        <div className="card">
+          <p>Nema obavijesti.</p>
         </div>
       ) : (
         <div className="notification-list">
