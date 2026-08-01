@@ -4,6 +4,7 @@ import AppLayout from "../components/AppLayout";
 import { API_BASE, authHeaders, type Institution } from "../types";
 
 const InstitutionsPage = () => {
+  const isAdmin = localStorage.getItem("userRole") === "admin";
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [naziv, setNaziv] = useState("");
@@ -64,33 +65,35 @@ const InstitutionsPage = () => {
 
   return (
     <AppLayout title="Institucije" subtitle={`${institutions.length} institucija u sustavu`}>
-      <div className="grid-2" style={{ alignItems: "start" }}>
-        <form className="card form-row" onSubmit={handleSubmit}>
-          <h3 className="section-title">Dodaj instituciju</h3>
-          <div className="form-group">
-            <label htmlFor="naziv">Naziv *</label>
-            <input id="naziv" type="text" value={naziv} onChange={(e) => setNaziv(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label htmlFor="adresa">Adresa</label>
-            <input id="adresa" type="text" value={adresa} onChange={(e) => setAdresa(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="grad">Grad</label>
-            <input id="grad" type="text" value={grad} onChange={(e) => setGrad(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="email">Kontakt e-mail</label>
-            <input id="email" type="email" value={kontaktEmail} onChange={(e) => setKontaktEmail(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="osoba">Kontakt osoba</label>
-            <input id="osoba" type="text" value={kontaktOsoba} onChange={(e) => setKontaktOsoba(e.target.value)} />
-          </div>
-          <button type="submit" className="btn btn-primary">
-            Spremi instituciju
-          </button>
-        </form>
+      <div className={isAdmin ? "grid-2" : ""} style={{ alignItems: "start" }}>
+        {isAdmin && (
+          <form className="card form-row" onSubmit={handleSubmit}>
+            <h3 className="section-title">Dodaj instituciju</h3>
+            <div className="form-group">
+              <label htmlFor="naziv">Naziv *</label>
+              <input id="naziv" type="text" value={naziv} onChange={(e) => setNaziv(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label htmlFor="adresa">Adresa</label>
+              <input id="adresa" type="text" value={adresa} onChange={(e) => setAdresa(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="grad">Grad</label>
+              <input id="grad" type="text" value={grad} onChange={(e) => setGrad(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Kontakt e-mail</label>
+              <input id="email" type="email" value={kontaktEmail} onChange={(e) => setKontaktEmail(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="osoba">Kontakt osoba</label>
+              <input id="osoba" type="text" value={kontaktOsoba} onChange={(e) => setKontaktOsoba(e.target.value)} />
+            </div>
+            <button type="submit" className="btn btn-primary">
+              Spremi instituciju
+            </button>
+          </form>
+        )}
 
         <div className="card">
           <h3 className="section-title">Popis institucija</h3>

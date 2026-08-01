@@ -4,6 +4,16 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 import { API_BASE, authHeaders, type Institution } from "../types";
 
+const POZICIJA_PRIJEDLOG: Record<string, string> = {
+  "Atlantbh d.o.o.": "Software Developer Intern",
+  "Logosoft d.o.o.": "Web Developer Intern",
+  "Mistral Technologies": "Backend Developer Intern",
+  "BH Telecom d.d.": "Telekomunikacijski inženjer pripravnik",
+  "Aluminij d.d.": "Inženjer strojarstva pripravnik",
+  "Sveučilište u Mostaru": "Studentski suradnik u nastavi",
+  "Infobip": "Software Engineer Intern",
+};
+
 const NewApplicationPage = () => {
   const [institucije, setInstitucije] = useState<Institution[]>([]);
   const [institucijaId, setInstitucijaId] = useState("");
@@ -63,7 +73,14 @@ const NewApplicationPage = () => {
           <select
             id="institucija"
             value={institucijaId}
-            onChange={(e) => setInstitucijaId(e.target.value)}
+            onChange={(e) => {
+              const noviId = e.target.value;
+              setInstitucijaId(noviId);
+              const odabrana = institucije.find((inst) => String(inst.id) === noviId);
+              if (odabrana) {
+                setNazivPozicije(POZICIJA_PRIJEDLOG[odabrana.naziv] ?? "");
+              }
+            }}
             required
           >
             <option value="">Odaberite instituciju</option>

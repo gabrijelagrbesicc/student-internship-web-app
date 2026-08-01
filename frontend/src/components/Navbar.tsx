@@ -30,7 +30,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    navigate("/login");
   };
 
   if (!user) return null;
@@ -52,10 +52,14 @@ const Navbar = () => {
           )}
           {(user.role === "mentor" || user.role === "admin") && (
             <>
-              <Link to="/applications/all" className="nav-link">Sve prijave</Link>
-              <Link to="/reports" className="nav-link">Izvještaji</Link>
+              <Link to="/applications/all" className="nav-link">
+                {user.role === "admin" ? "Sve prijave" : "Moji studenti"}
+              </Link>
               <Link to="/institutions" className="nav-link">Institucije</Link>
             </>
+          )}
+          {user.role === "admin" && (
+            <Link to="/reports" className="nav-link">Izvještaji</Link>
           )}
           <Link to="/notifications" className="nav-link">
             Obavijesti{unread > 0 ? ` (${unread})` : ""}

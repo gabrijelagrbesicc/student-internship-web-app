@@ -327,7 +327,7 @@ const ApplicationDetailsPage = () => {
                     </td>
                     <td>
                       <a
-                        href={`${API_BASE}/${doc.putanja.replace("\\", "/")}`}
+                        href={`${API_BASE}/${doc.putanja.replace(/\\/g, "/")}`}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-ghost btn-sm"

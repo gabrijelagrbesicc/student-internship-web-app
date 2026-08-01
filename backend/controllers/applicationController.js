@@ -83,8 +83,15 @@ const getAllApplications = async (req, res) => {
     try {
         const pool = await poolPromise;
 
-        const result = await pool.request().query(`
-            SELECT 
+        const isMentor = req.user.role === "mentor";
+
+        const request = pool.request();
+        if (isMentor) {
+            request.input("mentor_id", sql.Int, req.user.id);
+        }
+
+        const result = await request.query(`
+            SELECT
                 pp.*,
                 s.ime AS student_ime,
                 s.prezime AS student_prezime,
@@ -95,6 +102,7 @@ const getAllApplications = async (req, res) => {
             LEFT JOIN users s ON pp.student_id = s.id
             LEFT JOIN users m ON pp.mentor_id = m.id
             LEFT JOIN institucije i ON pp.institucija_id = i.id
+            ${isMentor ? "WHERE pp.mentor_id = @mentor_id" : ""}
             ORDER BY pp.created_at DESC
         `);
 
@@ -151,6 +159,15 @@ const getApplicationById = async (req, res) => {
             });
         }
 
+        if (
+            req.user.role === "mentor" &&
+            application.mentor_id !== req.user.id
+        ) {
+            return res.status(403).json({
+                message: "Nemate pristup ovoj prijavi."
+            });
+        }
+
         res.status(200).json(application);
     } catch (error) {
         res.status(500).json({
@@ -186,10 +203,11 @@ const updateStatus = async (req, res) => {
         const oldStatusResult = await pool.request()
             .input("id", sql.Int, id)
             .query(`
-                SELECT 
+                SELECT
                     pp.status,
                     pp.naziv_pozicije,
                     pp.student_id,
+                    pp.mentor_id,
                     u.email AS student_email,
                     u.ime AS student_ime,
                     u.prezime AS student_prezime
@@ -201,6 +219,15 @@ const updateStatus = async (req, res) => {
         if (oldStatusResult.recordset.length === 0) {
             return res.status(404).json({
                 message: "Prijava nije pronađena."
+            });
+        }
+
+        if (
+            req.user.role === "mentor" &&
+            oldStatusResult.recordset[0].mentor_id !== req.user.id
+        ) {
+            return res.status(403).json({
+                message: "Nemate pristup ovoj prijavi."
             });
         }
 
@@ -346,6 +373,23 @@ const gradeApplication = async (req, res) => {
 
         const pool = await poolPromise;
 
+        const appResult = await pool.request()
+            .input("id", sql.Int, id)
+            .query(`SELECT mentor_id FROM prijave_prakse WHERE id = @id`);
+
+        if (appResult.recordset.length === 0) {
+            return res.status(404).json({ message: "Prijava nije pronađena." });
+        }
+
+        if (
+            req.user.role === "mentor" &&
+            appResult.recordset[0].mentor_id !== req.user.id
+        ) {
+            return res.status(403).json({
+                message: "Nemate pristup ovoj prijavi."
+            });
+        }
+
         await pool.request()
             .input("id", sql.Int, id)
             .input("ocjena", sql.Int, ocjena ?? null)
@@ -375,7 +419,7 @@ const getStatusHistory = async (req, res) => {
 
         const appResult = await pool.request()
             .input("id", sql.Int, id)
-            .query(`SELECT student_id FROM prijave_prakse WHERE id = @id`);
+            .query(`SELECT student_id, mentor_id FROM prijave_prakse WHERE id = @id`);
 
         if (appResult.recordset.length === 0) {
             return res.status(404).json({ message: "Prijava nije pronađena." });
@@ -384,6 +428,13 @@ const getStatusHistory = async (req, res) => {
         if (
             req.user.role === "student" &&
             appResult.recordset[0].student_id !== req.user.id
+        ) {
+            return res.status(403).json({ message: "Nemate pristup ovoj prijavi." });
+        }
+
+        if (
+            req.user.role === "mentor" &&
+            appResult.recordset[0].mentor_id !== req.user.id
         ) {
             return res.status(403).json({ message: "Nemate pristup ovoj prijavi." });
         }

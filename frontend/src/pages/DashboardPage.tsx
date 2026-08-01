@@ -94,10 +94,14 @@ const DashboardPage = () => {
         )}
         {(user?.role === "mentor" || user?.role === "admin") && (
           <>
-            <Link to="/applications/all" className="quick-link">Sve prijave</Link>
-            <Link to="/reports" className="quick-link">Izvještaji</Link>
+            <Link to="/applications/all" className="quick-link">
+              {user?.role === "admin" ? "Sve prijave" : "Moji studenti"}
+            </Link>
             <Link to="/institutions" className="quick-link">Institucije</Link>
           </>
+        )}
+        {user?.role === "admin" && (
+          <Link to="/reports" className="quick-link">Izvještaji</Link>
         )}
         <Link to="/notifications" className="quick-link">
           Obavijesti{unreadNotifications > 0 ? ` (${unreadNotifications} novo)` : ""}

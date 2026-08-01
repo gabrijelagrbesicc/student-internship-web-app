@@ -10,6 +10,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.get("/", authMiddleware, getAllInstitutions);
-router.post("/", authMiddleware, roleMiddleware("admin", "mentor"), createInstitution);
+router.post("/", authMiddleware, roleMiddleware("admin"), createInstitution);
 
 module.exports = router;

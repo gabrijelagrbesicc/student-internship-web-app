@@ -6,7 +6,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.get("/me", authMiddleware, getMe);
-router.get("/", authMiddleware, roleMiddleware("admin", "mentor"), getAllUsers);
-router.get("/mentors", authMiddleware, getMentors);
+router.get("/", authMiddleware, roleMiddleware("admin"), getAllUsers);
+router.get("/mentors", authMiddleware, roleMiddleware("admin"), getMentors);
 
 module.exports = router;

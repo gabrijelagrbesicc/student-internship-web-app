@@ -26,6 +26,7 @@ const AllApplicationsPage = () => {
   const [institutionFilter, setInstitutionFilter] = useState("");
   const [statusDraft, setStatusDraft] = useState<Record<number, string>>({});
   const [mentorDraft, setMentorDraft] = useState<Record<number, string>>({});
+  const isAdmin = localStorage.getItem("userRole") === "admin";
 
   const fetchApplications = async () => {
     try {
@@ -101,10 +102,12 @@ const AllApplicationsPage = () => {
 
   useEffect(() => {
     fetchApplications();
-    axios
-      .get<Mentor[]>(`${API_BASE}/api/users/mentors`, { headers: authHeaders() })
-      .then((res) => setMentors(res.data))
-      .catch(console.error);
+    if (isAdmin) {
+      axios
+        .get<Mentor[]>(`${API_BASE}/api/users/mentors`, { headers: authHeaders() })
+        .then((res) => setMentors(res.data))
+        .catch(console.error);
+    }
     axios
       .get<Institution[]>(`${API_BASE}/api/institutions`, { headers: authHeaders() })
       .then((res) => setInstitutions(res.data))
@@ -113,7 +116,7 @@ const AllApplicationsPage = () => {
 
   return (
     <AppLayout
-      title="Sve prijave prakse"
+      title={isAdmin ? "Sve prijave prakse" : "Moji studenti"}
       subtitle={`${filteredApplications.length} prijava`}
     >
       <div className="filter-bar card" style={{ padding: "16px" }}>
@@ -182,7 +185,7 @@ const AllApplicationsPage = () => {
 
               <div className="divider" />
 
-              <div className="grid-2">
+              <div className={isAdmin ? "grid-2" : ""}>
                 <div>
                   <label>Promijeni status</label>
                   <div className="form-actions">
@@ -207,31 +210,33 @@ const AllApplicationsPage = () => {
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label>Dodijeli mentora</label>
-                  <div className="form-actions">
-                    <select
-                      value={mentorDraft[app.id] ?? ""}
-                      onChange={(e) =>
-                        setMentorDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
-                      }
-                    >
-                      <option value="">— Odaberi mentora —</option>
-                      {mentors.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.ime} {m.prezime}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleAssignMentor(app.id)}
-                    >
-                      Spremi mentora
-                    </button>
+                {isAdmin && (
+                  <div>
+                    <label>Dodijeli mentora</label>
+                    <div className="form-actions">
+                      <select
+                        value={mentorDraft[app.id] ?? ""}
+                        onChange={(e) =>
+                          setMentorDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
+                        }
+                      >
+                        <option value="">— Odaberi mentora —</option>
+                        {mentors.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.ime} {m.prezime}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleAssignMentor(app.id)}
+                      >
+                        Spremi mentora
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ))}
