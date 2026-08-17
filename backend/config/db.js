@@ -1,5 +1,3 @@
-console.log("DB FILE SE UCITAO");
-
 const sql = require("mssql");
 require("dotenv").config();
 
@@ -15,8 +13,6 @@ const config = {
     connectionTimeout: 30000,
     requestTimeout: 30000
 };
-
-console.log("POKUSAVAM SPOJ:", config.server, config.options.instanceName);
 
 const poolPromise = new sql.ConnectionPool(config)
     .connect()

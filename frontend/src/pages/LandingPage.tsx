@@ -15,7 +15,6 @@ const LandingPage = () => (
       </header>
 
       <div className="landing-hero-content">
-        <p className="landing-org">Prijava i evidencija studentske prakse</p>
         <h1>Studentska praksa</h1>
         <Link to="/register" className="landing-cta">
           <span>Registriraj se</span>

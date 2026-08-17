@@ -413,7 +413,7 @@ tr:last-child td {
 .landing-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(6, 16, 32, 0.48) 0%, rgba(6, 16, 32, 0.72) 100%);
+  background: linear-gradient(180deg, rgba(6, 16, 32, 0.3) 0%, rgba(6, 16, 32, 0.55) 100%);
 }
 
 .landing-topbar {
@@ -466,14 +466,6 @@ tr:last-child td {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.landing-org {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0 0 12px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 .landing-hero h1 {
