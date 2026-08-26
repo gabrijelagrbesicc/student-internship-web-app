@@ -79,6 +79,15 @@ a {
   gap: 12px;
 }
 
+.navbar-top-row,
+.navbar-collapse {
+  display: contents;
+}
+
+.navbar-toggle {
+  display: none;
+}
+
 .navbar-brand {
   color: #fff;
   font-weight: 800;
@@ -723,13 +732,13 @@ tr:last-child td {
 }
 
 @media (max-width: 600px) {
+  .container {
+    padding: 0 12px;
+  }
+
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
-  }
-
-  .navbar-links {
-    width: 100%;
   }
 
   .landing-hero h1 {
@@ -739,5 +748,137 @@ tr:last-child td {
   .landing-cta {
     padding: 15px 26px;
     font-size: 1rem;
+  }
+
+  /* navbar */
+  .navbar {
+    padding: 10px 14px;
+  }
+
+  .navbar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .navbar-top-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+
+  .navbar-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0;
+    align-items: center;
+  }
+
+  .navbar-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+  }
+
+  .navbar-collapse {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .navbar-collapse.open {
+    display: flex;
+  }
+
+  .navbar-links {
+    flex-direction: column;
+    width: 100%;
+    gap: 2px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 10px 12px;
+  }
+
+  .navbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .navbar-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* dashboard stat cards */
+  .stat-grid {
+    gap: 10px;
+  }
+
+  .stat-card {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* page header */
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 18px;
+  }
+
+  /* generic layout */
+  .flex-between {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar .form-group {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .table-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .auth-card {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    text-align: center;
   }
 }
